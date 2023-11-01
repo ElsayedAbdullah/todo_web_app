@@ -97,7 +97,7 @@ function Todo({ todo }) {
             <Grid item xs={4}>
               <Stack direction="row" spacing={1}>
                 <IconButton
-                  className="icon-button"
+                  className={`${todo.isCompleted ? "active" : ""} icon-button`}
                   style={{
                     border: "3px solid #4caf50 ",
                     color: todo.isCompleted ? "white" : "#4caf50",

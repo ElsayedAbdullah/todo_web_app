@@ -14,7 +14,12 @@ body {
 }
 
 .icon-button:hover {
-  background-color: rgba(50, 50, 50, 0.3) !important;
+  background-color: #dcdcdc !important;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.icon-button.active:hover {
+  background-color: rgb(76, 175, 80) !important;
 }
 
 .todos-content {
