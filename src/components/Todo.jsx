@@ -1,17 +1,10 @@
 // Material UI Components
 import {
-  Button,
   Card,
   CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   Grid,
   IconButton,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 
@@ -19,49 +12,18 @@ import {
 import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import { useContext, useState } from "react";
-import { todosContext } from "../contexts/todosContext.js";
+import { useContext } from "react";
+import { SnackBarContext } from "../contexts/SnackBarContext.jsx";
+import { DispatchTodosContext } from "../contexts/TodosContext.jsx";
 
-function Todo({ todo }) {
-  const { todos, setTodos } = useContext(todosContext);
-  // const [isCompleted, setIsCompleted] = useState(false)
-  const [openDeleteTodoDialog, setOpenDeleteTodoDialog] = useState(false);
-  const [openUpdateTodoDialog, setOpenUpdateTodoDialog] = useState(false);
-  const [updatedTodo, setUpdatedTodo] = useState({
-    title: todo.title,
-    details: todo.details,
-  });
-
-  // Delete Todo
-  function handleDeleteTodo(todoId) {
-    const updatedTodos = todos.filter((t) => t.id !== todoId);
-    setTodos(updatedTodos);
-    localStorage.setItem("todos", JSON.stringify(updatedTodos));
-  }
-
-  // Update Todo
-  function handleUpdateTodo(todoId) {
-    const updatedTodos = todos.map((t) => {
-      if (t.id === todoId) {
-        return { ...t, title: updatedTodo.title, details: updatedTodo.details };
-      } else {
-        return t;
-      }
-    });
-    setTodos(updatedTodos);
-    localStorage.setItem("todos", JSON.stringify(updatedTodos));
-  }
+function Todo({ todo, showDeleteDialog, showUpdateDialog }) {
+  const { dispatch } = useContext(DispatchTodosContext);
+  const { showHideSnackBar } = useContext(SnackBarContext);
 
   // mark todo as completed
   function markTodoCompleted(todoId) {
-    const updatedTodos = todos.map((t) => {
-      if (t.id === todoId) {
-        return { ...t, isCompleted: !t.isCompleted };
-      }
-      return t;
-    });
-    setTodos(updatedTodos);
-    localStorage.setItem("todos", JSON.stringify(updatedTodos));
+    dispatch({ type: "markTodoCompleted", payload: { id: todoId } });
+    showHideSnackBar("updated successfully!");
   }
 
   return (
@@ -116,7 +78,7 @@ function Todo({ todo }) {
                     backgroundColor: "white",
                   }}
                   aria-label="edit"
-                  onClick={() => setOpenUpdateTodoDialog(true)}
+                  onClick={() => showUpdateDialog(todo)}
                 >
                   <EditOutlinedIcon />
                 </IconButton>
@@ -128,7 +90,9 @@ function Todo({ todo }) {
                     backgroundColor: "white",
                   }}
                   aria-label="delete"
-                  onClick={() => setOpenDeleteTodoDialog(true)}
+                  onClick={() => {
+                    showDeleteDialog(todo);
+                  }}
                 >
                   <DeleteOutlineOutlinedIcon />
                 </IconButton>
@@ -137,80 +101,6 @@ function Todo({ todo }) {
           </Grid>
         </CardContent>
       </Card>
-
-      {/* Delete Dialog */}
-
-      <Dialog
-        open={openDeleteTodoDialog}
-        onClose={() => setOpenDeleteTodoDialog(false)}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">
-          Are you sure to Delete {todo.title} ?
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            {`if you agree to delete you can't retrieve it again`}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteTodoDialog(false)}>
-            Disagree
-          </Button>
-          <Button onClick={() => handleDeleteTodo(todo.id)} autoFocus>
-            Agree
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* ==Delete Dialog== */}
-
-      {/* Update Dialog */}
-      <Dialog
-        open={openUpdateTodoDialog}
-        onClose={() => setOpenUpdateTodoDialog(false)}
-      >
-        <DialogTitle>Edit Todo</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="title"
-            label="Todo Title"
-            type="text"
-            fullWidth
-            variant="standard"
-            value={updatedTodo.title}
-            onChange={(e) =>
-              setUpdatedTodo({ ...updatedTodo, title: e.target.value })
-            }
-          />
-          <TextField
-            margin="dense"
-            id="details"
-            label="Todo Details"
-            type="text"
-            fullWidth
-            variant="standard"
-            value={updatedTodo.details}
-            onChange={(e) =>
-              setUpdatedTodo({ ...updatedTodo, details: e.target.value })
-            }
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenUpdateTodoDialog(false)}>Cancel</Button>
-          <Button
-            onClick={() => {
-              handleUpdateTodo(todo.id);
-              setOpenUpdateTodoDialog(false);
-            }}
-          >
-            Edit
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* ==Update Dialog== */}
     </div>
   );
 }

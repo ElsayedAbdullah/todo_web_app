@@ -5,6 +5,11 @@ import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import {
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Grid,
   Stack,
@@ -15,40 +20,69 @@ import {
 
 // Custom Components
 import Todo from "./Todo.jsx";
-import { useContext, useState } from "react";
-import { todosContext } from "../contexts/todosContext.js";
-import { v4 as uuidv4 } from "uuid";
+import { useContext, useMemo, useState } from "react";
+import {
+  DispatchTodosContext,
+  TodosContext,
+} from "../contexts/TodosContext.jsx";
+import { SnackBarContext } from "../contexts/SnackBarContext.jsx";
 
 function TodosList() {
-  const { todos, setTodos } = useContext(todosContext);
+  const { todos } = useContext(TodosContext);
+  const { dispatch } = useContext(DispatchTodosContext);
+  const { showHideSnackBar } = useContext(SnackBarContext);
+  const [todoItem, setTodoItem] = useState({});
   const [inputTodoTitle, setInputTodoTitle] = useState("");
   const [filterValue, setFilterValue] = useState("all");
+  const [openDeleteTodoDialog, setOpenDeleteTodoDialog] = useState(false);
+  const [openUpdateTodoDialog, setOpenUpdateTodoDialog] = useState(false);
 
-  // useEffect(() => {
-  //   const storageTodos = JSON.parse(localStorage.getItem("todos")) ?? [];
-  //   setTodos(storageTodos);
-  // }, [todos, setTodos]);
+  //== Handlers ==\\
+  // Update Todo
+  function handleUpdateTodo() {
+    dispatch({ type: "updateTodo", payload: { todoItem } });
+    showHideSnackBar("updated successfully!");
+  }
 
+  // Add New Todo
   function handleAddTodo(e) {
     e.preventDefault();
     if (inputTodoTitle !== "") {
-      const newTodo = {
-        id: uuidv4(),
-        title: inputTodoTitle,
-        details: "",
-        isCompleted: false,
-      };
-
-      const updatedTodos = [...todos, newTodo];
-      setTodos(updatedTodos);
-      localStorage.setItem("todos", JSON.stringify(updatedTodos));
-
+      dispatch({ type: "addTodo", payload: { title: inputTodoTitle } });
       setInputTodoTitle("");
+      showHideSnackBar("added successfully!");
     }
   }
 
-  const completedTodos = todos?.filter((t) => t.isCompleted === true);
-  const notCompletedTodos = todos?.filter((t) => t.isCompleted === false);
+  // Delete Todo
+  function handleDeleteTodo() {
+    dispatch({ type: "deleteTodo", payload: { id: todoItem.id } });
+    setOpenDeleteTodoDialog(false);
+    showHideSnackBar("deleted successfully!");
+  }
+
+  // show update dialog
+  function showUpdateDialog(todo) {
+    setTodoItem(todo);
+    setOpenUpdateTodoDialog(true);
+  }
+
+  // show delete dialog
+  function showDeleteDialog(todo) {
+    setTodoItem(todo);
+    setOpenDeleteTodoDialog(true);
+  }
+
+  // useMemo hook to make completed todos not changing with each change in all states
+  const completedTodos = useMemo(() => {
+    return todos?.filter((t) => t.isCompleted === true);
+  }, [todos]);
+
+  const notCompletedTodos = useMemo(() => {
+    return todos?.filter((t) => {
+      return t.isCompleted === false;
+    });
+  }, [todos]);
 
   let todosToBeRendered = todos;
 
@@ -58,10 +92,17 @@ function TodosList() {
     todosToBeRendered = notCompletedTodos;
   }
 
-  const todosJsx = todosToBeRendered?.map((t) => <Todo key={t.id} todo={t} />);
+  const todosJsx = todosToBeRendered?.map((t) => (
+    <Todo
+      showDeleteDialog={showDeleteDialog}
+      showUpdateDialog={showUpdateDialog}
+      key={t.id}
+      todo={t}
+    />
+  ));
 
   return (
-    <todosContext.Provider value={{ todos, setTodos }}>
+    <>
       <Container maxWidth="sm">
         <Card sx={{ minWidth: 275 }}>
           <CardContent>
@@ -84,7 +125,7 @@ function TodosList() {
             </Stack>
             {/* Toggle Button for Filter */}
             {/* Todos */}
-            {todos?.length ? (
+            {todos?.length > 0 ? (
               <div className="todos-content" id="style-11">
                 {todosJsx}
               </div>
@@ -109,6 +150,7 @@ function TodosList() {
                 </Grid>
                 <Grid item xs={4}>
                   <Button
+                    type="submit"
                     sx={{ width: "100%", height: "100%" }}
                     variant="contained"
                   >
@@ -121,7 +163,80 @@ function TodosList() {
           </CardContent>
         </Card>
       </Container>
-    </todosContext.Provider>
+
+      {/* Delete Dialog */}
+      <Dialog
+        open={openDeleteTodoDialog}
+        onClose={() => setOpenDeleteTodoDialog(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Are you sure to Delete This Todo ?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {`if you agree to delete you can't retrieve it again`}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteTodoDialog(false)}>
+            Disagree
+          </Button>
+          <Button onClick={() => handleDeleteTodo()} autoFocus>
+            Agree
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* ==Delete Dialog== */}
+
+      {/* Update Dialog */}
+      <Dialog
+        open={openUpdateTodoDialog}
+        onClose={() => setOpenUpdateTodoDialog(false)}
+      >
+        <DialogTitle>Edit Todo</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="title"
+            label="Todo Title"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={todoItem.title}
+            onChange={(e) =>
+              setTodoItem({ ...todoItem, title: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            id="details"
+            label="Todo Details"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={todoItem.details}
+            onChange={(e) =>
+              setTodoItem({ ...todoItem, details: e.target.value })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenUpdateTodoDialog(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              handleUpdateTodo();
+              setOpenUpdateTodoDialog(false);
+            }}
+          >
+            Edit
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* ==Update Dialog== */}
+    </>
   );
 }
 
